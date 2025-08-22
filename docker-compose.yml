@@ -1,0 +1,32 @@
+version: "3.9"
+services:
+  web:
+    build: .
+    ports:
+      - "3000:80"     # App served on http://localhost:3000
+    depends_on:
+      - selenium
+
+  selenium:
+    image: selenium/standalone-chrome-debug:latest  # VNC on 5900
+    shm_size: "2g"
+    ports:
+      - "4444:4444"   # WebDriver endpoint
+      - "5900:5900"   # VNC (password: secret) - use a VNC viewer locally
+    environment:
+      SE_NODE_MAX_SESSIONS: "1"
+
+  tests:
+    image: node:20-alpine
+    working_dir: /tests
+    volumes:
+      - ./:/tests
+    environment:
+      APP_URL: "http://web"                     # resolves on docker network
+      SELENIUM_REMOTE_URL: "http://selenium:4444/wd/hub"
+      HEADLESS: "true"
+    depends_on:
+      - web
+      - selenium
+    command: >
+      sh -c "npm ci && npx wait-on http://web && npm run test:e2e"
