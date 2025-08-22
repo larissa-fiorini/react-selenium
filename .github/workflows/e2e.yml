@@ -22,36 +22,13 @@ jobs:
           --health-timeout=5s
           --health-retries=10
 
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: "npm"
-
-      - name: Install deps
-        run: npm ci
-
-      - name: Build app
-        run: npm run build
-
-      - name: Start static server
-        run: |
-          npx serve -s dist -l 3000 &
-          npx wait-on http://localhost:3000
-
-      - name: Run Selenium tests
-        env:
-          APP_URL: http://host.docker.internal:3000
-          SELENIUM_REMOTE_URL: http://localhost:4444/wd/hub
-          HEADLESS: "true"
-        run: npm run test:e2e
-
-      - name: Upload artifacts on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: selenium-artifacts
-          path: selenium-artifacts
+      web:
+        image: nginx:alpine
+        ports:
+          - 3000:80
+        volumes:
+          - ./dist:/usr/share/nginx/html:ro
+        options: >-
+          --health-cmd="wget -qO- http://localhost || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
