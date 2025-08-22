@@ -47,7 +47,13 @@ jobs:
           APP_URL: http://host.docker.internal:3000
           SELENIUM_REMOTE_URL: http://localhost:4444/wd/hub
           HEADLESS: "true"
-        run: npm run test:e2e
+        run: |
+            HOST_IP=$(ip route | grep default | awk '{print $3}')
+            echo "HOST_IP=$HOST_IP"
+            APP_URL="http://$HOST_IP:3000" \
+            SELENIUM_REMOTE_URL="http://localhost:4444/wd/hub" \
+            HEADLESS="true" \
+            npm run test:e2e
 
       - name: Upload artifacts on failure
         if: failure()
