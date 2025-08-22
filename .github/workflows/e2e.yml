@@ -39,8 +39,15 @@ jobs:
 
       - name: Start static server
         run: |
-          npx serve -s dist -l 3000 &
+          npx serve -s dist -l tcp://0.0.0.0:3000 &
           npx wait-on http://localhost:3000
+
+      - name: Debug app availability
+        run: |
+          curl -v http://localhost:3000 || true
+          HOST_IP=$(ip route | grep default | awk '{print $3}')
+          echo "Testing app at http://$HOST_IP:3000"
+          curl -v http://$HOST_IP:3000 || true
 
       - name: Run Selenium tests
         run: |
