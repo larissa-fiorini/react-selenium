@@ -1,0 +1,57 @@
+name: E2E (React + Selenium)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+
+    services:
+      selenium:
+        image: selenium/standalone-chrome-debug:latest
+        ports:
+          - 4444:4444
+          - 5900:5900
+        options: >-
+          --shm-size=2g
+          --health-cmd="curl -fsSL http://localhost:4444/status | jq -e '.value.ready == true' || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+
+      - name: Start static server
+        run: |
+          npx serve -s dist -l 3000 &
+          npx wait-on http://localhost:3000
+
+      - name: Run Selenium tests
+        env:
+          APP_URL: http://localhost:3000
+          SELENIUM_REMOTE_URL: http://localhost:4444/wd/hub
+          HEADLESS: "true"
+        run: npm run test:e2e
+
+      - name: Upload artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-artifacts
+          path: selenium-artifacts
